@@ -4,6 +4,10 @@ const mysql2 = require('mysql2');
 const inquirer = require('inquirer');
 const consoleTable = require('console.table');
 
+let departmentsArray = [];
+let rolesArray = [];
+let managersArray = [];
+
 // create the connection to database
 const connection = mysql.createConnection({
     host: 'localhost',
@@ -32,6 +36,7 @@ function firstQuestion() {
                 viewAllEmployees();
                 break;
             case 'Add Employee':
+                getRole();
                 break;
             case 'Update Employee Role':
                 break;
@@ -39,6 +44,7 @@ function firstQuestion() {
                 viewAllRoles();
                 break;
             case 'Add Role':
+                getDepartment();
                 break;
             case 'View All Departments':
                 viewAllDepartments();
@@ -74,10 +80,9 @@ function viewAllEmployees() {
 
 function viewAllRoles() {
     const query =
-        `SELECT role.id, role.title, department.department_name AS department, role.salary
-        FROM employee
-        LEFT JOIN role ON employee.role_id = role.id
-        LEFT JOIN department ON department.id = role.department_id`
+        `SELECT role.id, role.title, department.department_name AS department, role.salary 
+        FROM role
+        LEFT JOIN department ON department.id = role.department_id`;
 
     connection.query(query, function (err, res) {
         if (err) throw err;
@@ -109,25 +114,186 @@ function addDepartment() {
             message: 'What is the name of the department?',
             validate: departmentInput => {
                 if (departmentInput) {
-                  return true;
+                    return true;
                 } else {
-                  console.log("Please enter a department name.");
-                  return false;
+                    console.log("Please enter a department name.");
+                    return false;
                 }
-              }
+            }
         }
     ]).then(answer => { //for inquirer the parameter has to be something which is an object here
         const query =
-        `INSERT INTO department(department_name) VALUES('${answer.departmentName}');`;
+            `INSERT INTO department(department_name) VALUES('${answer.departmentName}');`;
+
+        connection.query(query, function (err, res) {
+            if (err) throw err;
+            // console.table(res);
+            console.log(`'${answer.departmentName}' is successfully added as a department.\n`);
+            firstQuestion();
+        })
+    })
+}
+
+function getDepartment() {
+
+    let departmentId;
+
+    const query =
+        `SELECT * FROM department;`;
 
     connection.query(query, function (err, res) {
         if (err) throw err;
-        // console.table(res);
-        console.log(`Department '${answer.departmentName}', successfully added as a department.\n`);
-        firstQuestion();
+        departmentsArray = Object.values(JSON.parse(JSON.stringify(res)));
+
+        for (let i = 0; i < res.length; i++) {
+            departmentsArray[i] = res[i].department_name;
+            departmentId = res[i].id;
+        }
+        return addRole(departmentsArray, departmentId);
     })
-})
 }
+
+function addRole(departmentsArray, departmentId) {
+
+    inquirer.prompt([
+        {
+            type: 'input',
+            name: 'roleName',
+            message: 'What is the name of the role?',
+            validate: roleInput => {
+                if (roleInput) {
+                    return true;
+                } else {
+                    console.log("Please enter a role name.");
+                    return false;
+                }
+            }
+        },
+        {
+            type: 'input',
+            name: 'roleSalary',
+            message: 'What is the salary of the role?',
+            validate: salaryInput => {
+                if (salaryInput) {
+                    return true;
+                } else {
+                    console.log("Please enter a salary.");
+                    return false;
+                }
+            }
+        },
+        {
+            type: 'list',
+            name: 'roleDepartment',
+            message: `Which department does the role belong to?`,
+            choices: departmentsArray,
+        }
+    ]).then(answer => { //for inquirer the parameter has to be something which is an object here
+        const query =
+            `INSERT INTO role(title, salary, department_id) VALUES('${answer.roleName}', '${answer.roleSalary}', '${departmentId}');`;
+
+        connection.query(query, function (err, res) {
+            if (err) throw err;
+            // console.table(res);
+            console.log(`'${answer.roleName}' with salary of '${answer.roleSalary}' is successfully added as a role in the '${answer.roleDepartment}' department.\n`);
+            firstQuestion();
+        })
+    })
+}
+
+function getRole() {
+
+    // let departmentId;
+
+    const query =
+        `SELECT * FROM role;`;
+
+    connection.query(query, function (err, res) {
+        if (err) throw err;
+        rolesArray = Object.values(JSON.parse(JSON.stringify(res)));
+        console.log(rolesArray);
+
+        for (let i = 0; i < res.length; i++) {
+            rolesArray[i] = res[i].title;
+            // departmentId = res[i].id;
+        }
+        return getManager(rolesArray);
+    })
+}
+
+function getManager(rolesArray) {
+    // let departmentId;
+
+    const query =
+        `SELECT * FROM employee;`;
+
+    connection.query(query, function (err, res) {
+        if (err) throw err;
+        rolesArray = Object.values(JSON.parse(JSON.stringify(res)));
+        console.log(managersArray);
+
+        for (let i = 0; i < res.length; i++) {
+            managersArray[i] = res[i].manager_id;
+            // departmentId = res[i].id;
+        }
+        return addEmployee(rolesArray,managersArray);
+    })
+}
+
+function addEmployee(rolesArray, managersArray) {
+
+    inquirer.prompt([
+        {
+            type: 'input',
+            name: 'employeeFirstName',
+            message: 'What is the first name of the employee?',
+            validate: firstNameInput => {
+                if (firstNameInput) {
+                    return true;
+                } else {
+                    console.log("Please enter the first name.");
+                    return false;
+                }
+            }
+        },
+        {
+            type: 'input',
+            name: 'employeeLastName',
+            message: 'What is the last name of the employee?',
+            validate: lastNameInput => {
+                if (lastNameInput) {
+                    return true;
+                } else {
+                    console.log("Please enter the last name.");
+                    return false;
+                }
+            }
+        },
+        {
+            type: 'list',
+            name: 'employeeRole',
+            message: `What is the employee's role?`,
+            choices: rolesArray,
+        },
+        {
+            type: 'list',
+            name: 'employeeManager',
+            message: `Who is the employee's manager?`,
+            choices: managersArray,
+        }
+    ]).then(answer => { //for inquirer the parameter has to be something which is an object here
+        const query =
+            `INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES('${answer.employeeFirstName}', '${answer.employeeLastName}', '${answer.employeeRole}', '${answer.employeeManager}');`;
+
+        connection.query(query, function (err, res) {
+            if (err) throw err;
+            // console.table(res);
+            console.log(`'${answer.employeeFirstName} ${answer.employeeLastName}' as '${answer.employeeRole}' is successfully added. The manager is '${answer.employeeManager}'.\n`);
+            firstQuestion();
+        })
+    })
+}
+
 
 // Creates a function to initialize app
 function init() {
