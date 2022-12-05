@@ -2,7 +2,7 @@
 const mysql = require('mysql');
 const mysql2 = require('mysql2');
 const inquirer = require('inquirer');
-const cTable = require('console.table');
+const consoleTable = require('console.table');
 
 // create the connection to database
 const connection = mysql.createConnection({
@@ -15,13 +15,9 @@ const connection = mysql.createConnection({
 // Establishing Connection to database
 connection.connect((err) => {
     if (err) throw err;
-
-    console.log("\n Welcome to the Employee Tracker! \n");
-    firstQuestion();
 });
 
 function firstQuestion() {
-
     inquirer.prompt([
         {
             type: 'list',
@@ -34,7 +30,6 @@ function firstQuestion() {
         switch (choice.firstQuestion) {
             case 'View All Employees':
                 viewAllEmployees();
-                firstQuestion();
                 break;
             case 'Add Employee':
                 break;
@@ -42,17 +37,17 @@ function firstQuestion() {
                 break;
             case 'View All Roles':
                 viewAllRoles();
-                firstQuestion();
                 break;
             case 'Add Role':
                 break;
             case 'View All Departments':
                 viewAllDepartments();
-                firstQuestion();
                 break;
             case 'Add Department':
+                addDepartment();
                 break;
             case 'Quit':
+                connection.end();
                 break;
         }
     })
@@ -61,16 +56,20 @@ function firstQuestion() {
 function viewAllEmployees() {
     const query =
         `SELECT 
-        employee.id, employee.first_name, employee.last_name, role.title, department.department_name AS department, role.salary, NULL AS manager
+        employee.id, employee.first_name, employee.last_name, role.title, department.department_name AS department, role.salary, CONCAT(manager.first_name,' ',manager.last_name) AS manager
     FROM employee
-    JOIN role ON employee.role_id = role.id
-    JOIN department ON department.id = role.department_id
+    LEFT JOIN role ON employee.role_id = role.id
+    LEFT JOIN department ON department.id = role.department_id
+    LEFT JOIN employee manager ON manager.id = employee.manager_id
     `;
 
     connection.query(query, function (err, res) {
         if (err) throw err;
         console.table(res);
+        console.log('Viewing All Employees\n');
+        firstQuestion();
     })
+
 }
 
 function viewAllRoles() {
@@ -83,7 +82,11 @@ function viewAllRoles() {
     connection.query(query, function (err, res) {
         if (err) throw err;
         console.table(res);
+        console.log('Viewing All Roles\n');
+        firstQuestion();
     })
+
+
 }
 
 function viewAllDepartments() {
@@ -93,7 +96,37 @@ function viewAllDepartments() {
     connection.query(query, function (err, res) {
         if (err) throw err;
         console.table(res);
+        console.log('Viewing All Departments\n');
+        firstQuestion();
     })
+}
+
+function addDepartment() {
+    inquirer.prompt([
+        {
+            type: 'input',
+            name: 'departmentName',
+            message: 'What is the name of the department?',
+            validate: departmentInput => {
+                if (departmentInput) {
+                  return true;
+                } else {
+                  console.log("Please enter a department name.");
+                  return false;
+                }
+              }
+        }
+    ]).then(answer => { //for inquirer the parameter has to be something which is an object here
+        const query =
+        `INSERT INTO department(department_name) VALUES('${answer.departmentName}');`;
+
+    connection.query(query, function (err, res) {
+        if (err) throw err;
+        // console.table(res);
+        console.log(`Department '${answer.departmentName}', successfully added as a department.\n`);
+        firstQuestion();
+    })
+})
 }
 
 // Creates a function to initialize app
