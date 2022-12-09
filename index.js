@@ -7,6 +7,12 @@ const consoleTable = require('console.table');
 let departmentsArray = [];
 let rolesArray = [];
 let managersArray = [];
+let employeeId, roleId;
+let roles = [];
+let managers = [];
+let employees = [];
+let employeesArray = [];
+
 
 // create the connection to database
 const connection = mysql.createConnection({
@@ -36,9 +42,10 @@ function firstQuestion() {
                 viewAllEmployees();
                 break;
             case 'Add Employee':
-                getRole();
+                getRoleAndManager();
                 break;
             case 'Update Employee Role':
+                getEmployeeAndRole();
                 break;
             case 'View All Roles':
                 viewAllRoles();
@@ -90,8 +97,6 @@ function viewAllRoles() {
         console.log('Viewing All Roles\n');
         firstQuestion();
     })
-
-
 }
 
 function viewAllDepartments() {
@@ -120,7 +125,7 @@ function addDepartment() {
                     return false;
                 }
             }
-        }
+        },
     ]).then(answer => { //for inquirer the parameter has to be something which is an object here
         const query =
             `INSERT INTO department(department_name) VALUES('${answer.departmentName}');`;
@@ -201,46 +206,56 @@ function addRole(departmentsArray, departmentId) {
     })
 }
 
-function getRole() {
+function getRoleAndManager() {
 
     // let departmentId;
 
-    const query =
+    const query1 =
         `SELECT * FROM role;`;
 
-    connection.query(query, function (err, res) {
+    connection.query(query1, function (err, res) {
         if (err) throw err;
         rolesArray = Object.values(JSON.parse(JSON.stringify(res)));
-        console.log(rolesArray);
+        // console.log(rolesArray);
 
         for (let i = 0; i < res.length; i++) {
             rolesArray[i] = res[i].title;
+            roles[i] = res[i];
+            // console.log(roles);
             // departmentId = res[i].id;
         }
-        return getManager(rolesArray);
+
+        // console.log(rolesArray);
+        // console.log(roles);
+
+        // return addEmployee(rolesArray, roles);
     })
-}
 
-function getManager(rolesArray) {
-    // let departmentId;
-
-    const query =
+    const query2 =
         `SELECT * FROM employee;`;
 
-    connection.query(query, function (err, res) {
+    connection.query(query2, function (err, res) {
         if (err) throw err;
-        rolesArray = Object.values(JSON.parse(JSON.stringify(res)));
-        console.log(managersArray);
+        managersArray = Object.values(JSON.parse(JSON.stringify(res)));
+        // console.log(managersArray);
+        // console.log(rolesArray);
 
         for (let i = 0; i < res.length; i++) {
-            managersArray[i] = res[i].manager_id;
+            managers[i] = { name: res[i].first_name + ' ' + res[i].last_name, value: res[i].id };
+            // console.log();
+            // managers[i] = res[i];
+            // managers[i] = managers[i].first_name + ' ' + managers[i].last_name;
             // departmentId = res[i].id;
         }
-        return addEmployee(rolesArray,managersArray);
+
+        // console.log(managers);
+        // console.log(managers);
+        return addEmployee(rolesArray, managersArray, roles, managers);
     })
 }
 
-function addEmployee(rolesArray, managersArray) {
+
+function addEmployee(rolesArray, managersArray, roles, managers) {
 
     inquirer.prompt([
         {
@@ -273,22 +288,121 @@ function addEmployee(rolesArray, managersArray) {
             type: 'list',
             name: 'employeeRole',
             message: `What is the employee's role?`,
-            choices: rolesArray,
+            choices: rolesArray
         },
         {
             type: 'list',
             name: 'employeeManager',
             message: `Who is the employee's manager?`,
-            choices: managersArray,
+            choices: [...managers, { name: 'No Manager', value: null }]
         }
     ]).then(answer => { //for inquirer the parameter has to be something which is an object here
+
+        for (i = 0; i < roles.length; i++) {
+            if (answer.employeeRole == roles[i].title) {
+                roleId = roles[i].id;
+                // console.log(roleId);
+            }
+        }
+
+        managerId = answer.employeeManager;
+
         const query =
-            `INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES('${answer.employeeFirstName}', '${answer.employeeLastName}', '${answer.employeeRole}', '${answer.employeeManager}');`;
+            `INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`;
+
+
+        connection.query(query, [answer.employeeFirstName, answer.employeeLastName, roleId, managerId], function (err, res) {
+            if (err) throw err;
+            // console.table(res);
+            console.log(`'${answer.employeeFirstName} ${answer.employeeLastName}' as '${answer.employeeRole}' is successfully added.\n`);
+            firstQuestion();
+        })
+    })
+}
+
+function getEmployeeAndRole() {
+
+    // let departmentId;
+
+    const query1 =
+        `SELECT * FROM employee;`;
+
+    connection.query(query1, function (err, res) {
+        if (err) throw err;
+        employeesArray = Object.values(JSON.parse(JSON.stringify(res)));
+        // console.log(employeesArray);
+        // console.log(rolesArray);
+
+        for (let i = 0; i < res.length; i++) {
+            employeesArray[i] = res[i].first_name + ' ' + res[i].last_name;
+            employees[i] = res[i];
+            // employeesIdArray[i] = res[i].id;
+            // roles = res[i];
+            // console.log(roles);
+            // departmentId = res[i].id;
+        }
+
+        // console.log(employeesArray);
+        // console.log(employeesIdArray);
+
+    })
+
+    const query2 =
+        `SELECT * FROM role;`;
+
+    connection.query(query2, function (err, res) {
+        if (err) throw err;
+        rolesArray = Object.values(JSON.parse(JSON.stringify(res)));
+        // console.log(rolesArray);
+
+        for (let i = 0; i < res.length; i++) {
+            rolesArray[i] = res[i].title;
+            roles[i] = res[i];
+            // rolesIdArray[i] = res[i].id;
+            // departmentId = res[i].id;
+        }
+
+        // console.log(rolesIdArray);
+        return updateEmployeeRole(employeesArray, rolesArray, employees, roles);
+    })
+
+}
+
+function updateEmployeeRole(employeesArray, rolesArray, employees, roles) {
+    inquirer.prompt([
+        {
+            type: 'list',
+            name: 'employeeName',
+            message: `Which employee's role do you want to update?`,
+            choices: employeesArray
+        },
+        {
+            type: 'list',
+            name: 'employeeRole',
+            message: `Which role do you want to assign the selected employee?`,
+            choices: rolesArray
+        }
+    ]).then(answer => { //for inquirer the parameter has to be something which is an object here
+
+        for (i = 0; i < employees.length; i++) {
+            if (answer.employeeName == employees[i].Employee) {
+                employeeId = employees[i].id;
+            }
+        }
+
+        for (i = 0; i < roles.length; i++) {
+            if (answer.employeeRole == roles[i].title) {
+                roleId = roles[i].id;
+            }
+        }
+
+        const query =
+            `UPDATE employee SET role_id = ${roleId} WHERE id = ${employeeId};`;
 
         connection.query(query, function (err, res) {
             if (err) throw err;
             // console.table(res);
-            console.log(`'${answer.employeeFirstName} ${answer.employeeLastName}' as '${answer.employeeRole}' is successfully added. The manager is '${answer.employeeManager}'.\n`);
+            console.log(`'${answer.employeeName}''s role is successfully updated to '${answer.employeeRole}'.\n`);
             firstQuestion();
         })
     })
