@@ -8,9 +8,11 @@ let rolesArray = [];
 let managersArray = [];
 let employeeId;
 let roleId;
+let departmentId;
 let roles = [];
 let managers = [];
 let employees = [];
+let departments = [];
 let employeesArray = [];
 
 // create the connection to database
@@ -140,9 +142,6 @@ function addDepartment() {
 }
 
 function getDepartment() {
-
-    let departmentId;
-
     const query =
         `SELECT * FROM department;`;
 
@@ -152,13 +151,19 @@ function getDepartment() {
 
         for (let i = 0; i < res.length; i++) {
             departmentsArray[i] = res[i].department_name;
-            departmentId = res[i].id;
+            departments[i] = res[i];
+            // departmentId = res[i].id;
         }
-        return addRole(departmentsArray, departmentId);
+        console.log(departmentsArray);
+        console.log(departments);
+
+        // console.log(departmentId);
+
+        return addRole(departmentsArray, departments);
     })
 }
 
-function addRole(departmentsArray, departmentId) {
+function addRole(departmentsArray, departments) {
 
     inquirer.prompt([
         {
@@ -194,6 +199,15 @@ function addRole(departmentsArray, departmentId) {
             choices: departmentsArray,
         }
     ]).then(answer => { //for inquirer the parameter has to be something which is an object here
+        console.log(departmentsArray);
+        console.log(departments);
+
+        for (i = 0; i < departments.length; i++) {
+            if (answer.roleDepartment == departments[i].department_name) {
+                departmentId = departments[i].id;
+            }
+        }
+
         const query =
             `INSERT INTO role(title, salary, department_id) VALUES('${answer.roleName}', '${answer.roleSalary}', '${departmentId}');`;
 
@@ -221,14 +235,8 @@ function getRoleAndManager() {
         for (let i = 0; i < res.length; i++) {
             rolesArray[i] = res[i].title;
             roles[i] = res[i];
-            // console.log(roles);
-            // departmentId = res[i].id;
         }
 
-        // console.log(rolesArray);
-        // console.log(roles);
-
-        // return addEmployee(rolesArray, roles);
     })
 
     const query2 =
@@ -237,19 +245,10 @@ function getRoleAndManager() {
     connection.query(query2, function (err, res) {
         if (err) throw err;
         managersArray = Object.values(JSON.parse(JSON.stringify(res)));
-        // console.log(managersArray);
-        // console.log(rolesArray);
 
         for (let i = 0; i < res.length; i++) {
             managers[i] = { name: res[i].first_name + ' ' + res[i].last_name, value: res[i].id };
-            // console.log();
-            // managers[i] = res[i];
-            // managers[i] = managers[i].first_name + ' ' + managers[i].last_name;
-            // departmentId = res[i].id;
         }
-
-        // console.log(managers);
-        // console.log(managers);
         return addEmployee(rolesArray, managersArray, roles, managers);
     })
 }
@@ -301,7 +300,6 @@ function addEmployee(rolesArray, managersArray, roles, managers) {
         for (i = 0; i < roles.length; i++) {
             if (answer.employeeRole == roles[i].title) {
                 roleId = roles[i].id;
-                // console.log(roleId);
             }
         }
 
@@ -330,19 +328,11 @@ function getEmployeeAndRole() {
     connection.query(query1, function (err, res) {
         if (err) throw err;
         employeesArray = Object.values(JSON.parse(JSON.stringify(res)));
-        //console.log(employeesArray);
-        // console.log(rolesArray);
 
         for (let i = 0; i < res.length; i++) {
-            // employeesArray[i] = res[i].id + ". " +res[i].first_name + ' ' + res[i].last_name;
             employeesArray[i] = res[i].first_name + ' ' + res[i].last_name;
-            // console.log(res);
             employees[i] = res[i];
-           
         }
-
-        // console.log(employeesArray);
-        // console.log(employeesIdArray);
 
     })
 
@@ -352,23 +342,18 @@ function getEmployeeAndRole() {
     connection.query(query2, function (err, res) {
         if (err) throw err;
         rolesArray = Object.values(JSON.parse(JSON.stringify(res)));
-        // console.log(rolesArray);
 
         for (let i = 0; i < res.length; i++) {
             rolesArray[i] = res[i].title;
             roles[i] = res[i];
-            // rolesIdArray[i] = res[i].id;
-            // departmentId = res[i].id;
         }
 
-        // console.log(rolesIdArray);
         return updateEmployeeRole(employeesArray, rolesArray, employees, roles);
     })
 
 }
 
 function updateEmployeeRole(employeesArray, rolesArray, employees, roles) {
-    // console.log(employeesArray)
     inquirer.prompt([
         {
             type: 'list',
@@ -383,16 +368,13 @@ function updateEmployeeRole(employeesArray, rolesArray, employees, roles) {
             choices: rolesArray
         }
     ]).then(answer => { //for inquirer the parameter has to be something which is an object here
-        //console.log(answer.employeeName)
+
         for (i = 0; i < employees.length; i++) {
-            // console.log(answer.employeeName, employees[i].Employee)
             if (answer.employeeName == employeesArray[i]) {
                 employeeId = employees[i].id;
                 console.log(employeeId)
             }
         }
-
-        // employeeId = answer.employeeName.split(".")[0] //[1,". Breen Rethal"]
 
         for (i = 0; i < roles.length; i++) {
             if (answer.employeeRole == roles[i].title) {
@@ -405,7 +387,6 @@ function updateEmployeeRole(employeesArray, rolesArray, employees, roles) {
 
         connection.query(query, function (err, res) {
             if (err) throw err;
-            // console.table(res);
             console.log(`'${answer.employeeName}'s role is successfully updated to '${answer.employeeRole}'.\n`);
             firstQuestion();
         })
