@@ -1,5 +1,4 @@
 // Includes packages needed for this application
-const mysql = require('mysql');
 const mysql2 = require('mysql2');
 const inquirer = require('inquirer');
 const consoleTable = require('console.table');
@@ -7,16 +6,17 @@ const consoleTable = require('console.table');
 let departmentsArray = [];
 let rolesArray = [];
 let managersArray = [];
-let employeeId, roleId;
+let employeeId;
+let roleId;
 let roles = [];
 let managers = [];
 let employees = [];
 let employeesArray = [];
 
-
 // create the connection to database
-const connection = mysql.createConnection({
+const connection = mysql2.createConnection({
     host: 'localhost',
+    port: 3306,
     user: 'root',
     password: 'ilovechickenpizza',
     database: 'employeesDb'
@@ -330,16 +330,15 @@ function getEmployeeAndRole() {
     connection.query(query1, function (err, res) {
         if (err) throw err;
         employeesArray = Object.values(JSON.parse(JSON.stringify(res)));
-        // console.log(employeesArray);
+        //console.log(employeesArray);
         // console.log(rolesArray);
 
         for (let i = 0; i < res.length; i++) {
+            // employeesArray[i] = res[i].id + ". " +res[i].first_name + ' ' + res[i].last_name;
             employeesArray[i] = res[i].first_name + ' ' + res[i].last_name;
+            // console.log(res);
             employees[i] = res[i];
-            // employeesIdArray[i] = res[i].id;
-            // roles = res[i];
-            // console.log(roles);
-            // departmentId = res[i].id;
+           
         }
 
         // console.log(employeesArray);
@@ -369,6 +368,7 @@ function getEmployeeAndRole() {
 }
 
 function updateEmployeeRole(employeesArray, rolesArray, employees, roles) {
+    // console.log(employeesArray)
     inquirer.prompt([
         {
             type: 'list',
@@ -383,12 +383,16 @@ function updateEmployeeRole(employeesArray, rolesArray, employees, roles) {
             choices: rolesArray
         }
     ]).then(answer => { //for inquirer the parameter has to be something which is an object here
-
+        //console.log(answer.employeeName)
         for (i = 0; i < employees.length; i++) {
-            if (answer.employeeName == employees[i].Employee) {
+            // console.log(answer.employeeName, employees[i].Employee)
+            if (answer.employeeName == employeesArray[i]) {
                 employeeId = employees[i].id;
+                console.log(employeeId)
             }
         }
+
+        // employeeId = answer.employeeName.split(".")[0] //[1,". Breen Rethal"]
 
         for (i = 0; i < roles.length; i++) {
             if (answer.employeeRole == roles[i].title) {
@@ -402,7 +406,7 @@ function updateEmployeeRole(employeesArray, rolesArray, employees, roles) {
         connection.query(query, function (err, res) {
             if (err) throw err;
             // console.table(res);
-            console.log(`'${answer.employeeName}''s role is successfully updated to '${answer.employeeRole}'.\n`);
+            console.log(`'${answer.employeeName}'s role is successfully updated to '${answer.employeeRole}'.\n`);
             firstQuestion();
         })
     })
