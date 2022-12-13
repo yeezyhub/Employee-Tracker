@@ -3,6 +3,7 @@ const mysql2 = require('mysql2');
 const inquirer = require('inquirer');
 const consoleTable = require('console.table');
 
+//setting up the global variables
 let departmentsArray = [];
 let rolesArray = [];
 let managersArray = [];
@@ -29,6 +30,7 @@ connection.connect((err) => {
     if (err) throw err;
 });
 
+//first question prompt
 function firstQuestion() {
     inquirer.prompt([
         {
@@ -68,6 +70,7 @@ function firstQuestion() {
     })
 }
 
+//View All Employees
 function viewAllEmployees() {
     const query =
         `SELECT 
@@ -87,6 +90,7 @@ function viewAllEmployees() {
 
 }
 
+//View All Roles
 function viewAllRoles() {
     const query =
         `SELECT role.id, role.title, department.department_name AS department, role.salary 
@@ -101,6 +105,7 @@ function viewAllRoles() {
     })
 }
 
+//View All Departments
 function viewAllDepartments() {
     const query =
         `SELECT * FROM department`;
@@ -113,6 +118,7 @@ function viewAllDepartments() {
     })
 }
 
+//Add Department
 function addDepartment() {
     inquirer.prompt([
         {
@@ -134,13 +140,13 @@ function addDepartment() {
 
         connection.query(query, function (err, res) {
             if (err) throw err;
-            // console.table(res);
             console.log(`'${answer.departmentName}' is successfully added as a department.\n`);
             firstQuestion();
         })
     })
 }
 
+//getDepartment() to help adding roles
 function getDepartment() {
     const query =
         `SELECT * FROM department;`;
@@ -152,17 +158,13 @@ function getDepartment() {
         for (let i = 0; i < res.length; i++) {
             departmentsArray[i] = res[i].department_name;
             departments[i] = res[i];
-            // departmentId = res[i].id;
         }
-        console.log(departmentsArray);
-        console.log(departments);
-
-        // console.log(departmentId);
 
         return addRole(departmentsArray, departments);
     })
 }
 
+//Add Role
 function addRole(departmentsArray, departments) {
 
     inquirer.prompt([
@@ -199,8 +201,6 @@ function addRole(departmentsArray, departments) {
             choices: departmentsArray,
         }
     ]).then(answer => { //for inquirer the parameter has to be something which is an object here
-        console.log(departmentsArray);
-        console.log(departments);
 
         for (i = 0; i < departments.length; i++) {
             if (answer.roleDepartment == departments[i].department_name) {
@@ -213,13 +213,13 @@ function addRole(departmentsArray, departments) {
 
         connection.query(query, function (err, res) {
             if (err) throw err;
-            // console.table(res);
             console.log(`'${answer.roleName}' with salary of '${answer.roleSalary}' is successfully added as a role in the '${answer.roleDepartment}' department.\n`);
             firstQuestion();
         })
     })
 }
 
+//getRoleAndManager() to help adding employee
 function getRoleAndManager() {
 
     // let departmentId;
@@ -230,8 +230,7 @@ function getRoleAndManager() {
     connection.query(query1, function (err, res) {
         if (err) throw err;
         rolesArray = Object.values(JSON.parse(JSON.stringify(res)));
-        // console.log(rolesArray);
-
+        
         for (let i = 0; i < res.length; i++) {
             rolesArray[i] = res[i].title;
             roles[i] = res[i];
@@ -253,7 +252,7 @@ function getRoleAndManager() {
     })
 }
 
-
+//Add Employee
 function addEmployee(rolesArray, managersArray, roles, managers) {
 
     inquirer.prompt([
@@ -311,16 +310,14 @@ function addEmployee(rolesArray, managersArray, roles, managers) {
 
         connection.query(query, [answer.employeeFirstName, answer.employeeLastName, roleId, managerId], function (err, res) {
             if (err) throw err;
-            // console.table(res);
             console.log(`'${answer.employeeFirstName} ${answer.employeeLastName}' as '${answer.employeeRole}' is successfully added.\n`);
             firstQuestion();
         })
     })
 }
 
+//getEmployeeAndRole() to help updating employee role
 function getEmployeeAndRole() {
-
-    // let departmentId;
 
     const query1 =
         `SELECT * FROM employee;`;
@@ -353,6 +350,7 @@ function getEmployeeAndRole() {
 
 }
 
+//Update Employee Role
 function updateEmployeeRole(employeesArray, rolesArray, employees, roles) {
     inquirer.prompt([
         {
@@ -372,7 +370,6 @@ function updateEmployeeRole(employeesArray, rolesArray, employees, roles) {
         for (i = 0; i < employees.length; i++) {
             if (answer.employeeName == employeesArray[i]) {
                 employeeId = employees[i].id;
-                console.log(employeeId)
             }
         }
 
